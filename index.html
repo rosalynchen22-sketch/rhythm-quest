@@ -1,0 +1,890 @@
+<!-- =====================================================================
+  RHYTHM QUEST  -  clap-back rhythm game for Dr. Rosalyn Chen's students
+  Ages 5-15, beginner to intermediate. One self-contained file.
+  PC: launch with "Start Rhythm Quest.bat" so the microphone works
+      (browsers block mics on double-clicked file:// pages).
+  iPad: open the web link in Safari. Tap mode works everywhere.
+====================================================================== -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Rhythm Quest 🥁</title>
+<style>
+:root{
+  --bg:#151735; --bg2:#1d2048; --ink:#26203a;
+  --paper:#fff7e6; --paper2:#ffedc9;
+  --coral:#ff6b57; --amber:#ffb32e; --mint:#3fd6a4; --sky:#5ac8f5; --plum:#8f7bff;
+  --soft:#bfc3ff;
+  --disp:ui-rounded,"Hiragino Maru Gothic ProN","Chalkboard SE","Comic Sans MS","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--disp); color:var(--paper); background:var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 15% -10%, #2b2f6b55, transparent 60%),
+    radial-gradient(800px 500px at 95% 110%, #6b2b5055, transparent 60%),
+    radial-gradient(#ffffff10 1.4px, transparent 1.5px);
+  background-size:auto,auto,26px 26px;
+  min-height:100%; overflow-x:hidden;
+  user-select:none;-webkit-user-select:none; touch-action:manipulation;
+}
+.wrap{max-width:860px;margin:0 auto;padding:14px 14px 40px}
+.scr{display:none}.scr.active{display:block;animation:rise .35s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- title ---------- */
+.logo{text-align:center;margin:16px 0 4px;font-size:clamp(34px,7vw,56px);font-weight:800;letter-spacing:1px}
+.logo span{display:inline-block;animation:bob 2.6s ease-in-out infinite}
+.logo span:nth-child(odd){animation-delay:.4s}
+.logo .c1{color:var(--coral);transform:rotate(-4deg)} .logo .c2{color:var(--amber)}
+.logo .c3{color:var(--mint);transform:rotate(3deg)} .logo .c4{color:var(--sky)}
+.logo .c5{color:var(--plum);transform:rotate(-3deg)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.tag{text-align:center;color:var(--soft);margin-bottom:18px;font-size:15px}
+
+/* ---------- cards & buttons ---------- */
+.card{background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:20px;
+  box-shadow:0 6px 0 #00000055; padding:16px; margin:0 auto 16px; max-width:720px}
+.card h3{font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#8a7a5f;margin-bottom:10px}
+.btn{font-family:var(--disp);font-weight:800;font-size:17px;color:var(--ink);
+  background:var(--amber);border:3px solid var(--ink);border-radius:16px;padding:12px 20px;
+  box-shadow:0 5px 0 var(--ink);cursor:pointer;transition:transform .06s,box-shadow .06s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn.big{font-size:24px;padding:16px 34px;border-radius:20px}
+.btn.mint{background:var(--mint)} .btn.sky{background:var(--sky)} .btn.coral{background:var(--coral);color:#fff}
+.btn.ghost{background:var(--paper2)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+
+/* ---------- home ---------- */
+.nameIn{font-family:var(--disp);font-size:19px;font-weight:700;color:var(--ink);
+  border:3px solid var(--ink);border-radius:14px;padding:10px 14px;background:#fff;width:100%;max-width:320px;text-align:center}
+.lvls{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.lvl{border:3px solid var(--ink);border-radius:16px;background:#fff;padding:10px 8px;text-align:center;
+  cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .06s}
+.lvl:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.lvl .em{font-size:30px}.lvl b{display:block;font-size:15px;margin:2px 0}
+.lvl small{color:#7c6f57;font-size:11px;line-height:1.2;display:block}
+.lvl.sel{background:var(--amber);outline:3px solid var(--coral)}
+.optRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+.opt{border:2.5px solid var(--ink);border-radius:999px;background:#fff;padding:7px 14px;font-weight:700;
+  font-family:var(--disp);font-size:14px;cursor:pointer;color:var(--ink)}
+.opt.sel{background:var(--mint)}
+.hint{color:#8a7a5f;font-size:12.5px;text-align:center;margin-top:8px;line-height:1.5}
+.homeFoot{color:var(--soft);font-size:12.5px;text-align:center;max-width:640px;margin:8px auto;line-height:1.6}
+
+/* ---------- game ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:720px;margin:0 auto 10px;flex-wrap:wrap}
+.chip{background:var(--bg2);border:2px solid #3a3e77;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700}
+.chip b{color:var(--amber)}
+.status{max-width:720px;margin:0 auto 10px;text-align:center;font-size:clamp(20px,4.5vw,28px);font-weight:800;min-height:38px}
+.status.turn{color:var(--mint);animation:pulse .5s ease}
+@keyframes pulse{0%{transform:scale(.85)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.staffCard{position:relative;background:var(--paper);border:3px solid var(--ink);border-radius:22px;
+  box-shadow:0 7px 0 #00000055;max-width:720px;margin:0 auto;padding:6px 4px 2px}
+.staffCard svg{display:block;width:100%;height:auto}
+.countNum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:110px;font-weight:800;color:var(--coral);pointer-events:none;opacity:0}
+.countNum.pop{animation:cpop .5s ease both}
+@keyframes cpop{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+.lights{display:flex;gap:18px;justify-content:center;margin:16px 0 6px}
+.bl{width:44px;height:44px;border-radius:50%;background:var(--bg2);border:3px solid #3a3e77;transition:background .08s}
+.bl.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 22px var(--amber);animation:bpop .3s ease}
+.bl.go.on{background:var(--mint);border-color:var(--mint);box-shadow:0 0 22px var(--mint)}
+@keyframes bpop{0%{transform:scale(.7)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+.meterWrap{max-width:280px;margin:8px auto;height:10px;border-radius:99px;background:var(--bg2);
+  border:2px solid #3a3e77;overflow:hidden;display:none}
+.meterWrap.show{display:block}
+.meterFill{height:100%;width:0%;background:linear-gradient(90deg,var(--mint),var(--amber));transition:width .05s linear}
+.gameBtns{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.clapFx{position:fixed;font-size:34px;pointer-events:none;animation:fxup .8s ease forwards;z-index:50}
+@keyframes fxup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-70px) scale(1.5)}}
+
+/* notation */
+#staff .hd{fill:var(--ink)}
+#staff .st{stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+#staff .op{fill:var(--paper);stroke:var(--ink);stroke-width:4}
+.beam{fill:var(--ink)} .restg{stroke:var(--ink);fill:none;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.restf{fill:var(--ink)}
+.syl{font-family:var(--disp);font-size:22px;font-weight:700;fill:#a08a63;text-anchor:middle}
+.mk{font-family:var(--disp);font-size:24px;font-weight:800;text-anchor:middle}
+g.ev{transform-box:fill-box;transform-origin:center}
+#staff g.ev.lit .hd, #staff g.ev.lit .op{fill:var(--coral)}
+#staff g.ev.lit .st{stroke:var(--coral)}
+g.ev.lit{transform:scale(1.22)}
+.clapTick{fill:var(--amber);opacity:.9}
+
+/* ---------- results ---------- */
+.bigStars{text-align:center;font-size:clamp(40px,9vw,64px);margin:6px 0}
+.praise{text-align:center;font-size:clamp(20px,5vw,30px);font-weight:800;color:var(--ink);margin-bottom:8px}
+.subScore{text-align:center;color:#7c6f57;font-weight:700;margin-bottom:12px;font-size:17px}
+.patRow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px}
+.patChip{border:2.5px solid var(--ink);background:#fff;border-radius:12px;padding:6px 10px;font-size:14px;font-weight:700}
+.confetti{position:fixed;top:-20px;font-size:22px;pointer-events:none;animation:fall linear forwards;z-index:60}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+/* ---------- mic check ---------- */
+.micMeter{height:34px;border:3px solid var(--ink);border-radius:12px;background:#fff;overflow:hidden;margin:8px 0}
+.micMeter div{height:100%;width:0%;background:linear-gradient(90deg,var(--mint),var(--amber),var(--coral))}
+.clapBig{text-align:center;font-size:56px;font-weight:800;color:#cbbf9f;min-height:80px}
+.clapBig.hit{color:var(--coral);animation:pulse .35s ease}
+select{font-family:var(--disp);font-size:15px;font-weight:700;border:2.5px solid var(--ink);border-radius:12px;
+  padding:8px 10px;background:#fff;color:var(--ink);max-width:100%}
+.micMsg{font-size:14px;color:#7c6f57;text-align:center;margin-top:8px;line-height:1.5;min-height:20px}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
+  border:2px solid #fff3;border-radius:14px;padding:12px 18px;font-weight:700;font-size:15px;z-index:99;
+  max-width:88vw;text-align:center;animation:rise .3s ease both}
+</style>
+
+<div class="wrap">
+
+<!-- ================= HOME ================= -->
+<div class="scr active" id="scrHome">
+  <div class="logo"><span class="c1">R</span><span class="c2">h</span><span class="c3">y</span><span class="c4">t</span><span class="c5">h</span><span class="c1">m</span>&nbsp;<span class="c2">Q</span><span class="c3">u</span><span class="c4">e</span><span class="c5">s</span><span class="c1">t</span> <span>🥁</span></div>
+  <div class="tag">Listen to the rhythm… then clap it back!</div>
+
+  <div class="card" style="text-align:center">
+    <h3>Who's playing?</h3>
+    <input class="nameIn" id="inName" maxlength="20" placeholder="Type your name ✏️" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <h3>Pick your level</h3>
+    <div class="lvls" id="lvlGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>Options</h3>
+    <div class="optRow" id="optInput">
+      <button class="opt" data-v="mic">👏 Clap (microphone)</button>
+      <button class="opt" data-v="tap">👆 Tap the screen</button>
+    </div>
+    <div class="optRow" id="optTempo">
+      <button class="opt" data-v="-12">🐢 Slow</button>
+      <button class="opt" data-v="0">🚶 Medium</button>
+      <button class="opt" data-v="12">🐇 Fast</button>
+    </div>
+    <div class="optRow" id="optCount">
+      <button class="opt" data-v="4">4 patterns</button>
+      <button class="opt" data-v="6">6 patterns</button>
+      <button class="opt" data-v="8">8 patterns</button>
+    </div>
+    <div class="optRow" id="optSyl">
+      <button class="opt" data-v="1">🗣️ Show counting (1 &amp; 2 &amp;)</button>
+      <button class="opt" data-v="0">🎼 Notes only</button>
+    </div>
+    <div class="hint">In Clap mode the game listens with the microphone — clap loud and proud! 👏</div>
+  </div>
+
+  <div class="row" style="margin:20px 0 10px">
+    <button class="btn big coral" id="btnStart">▶ Start!</button>
+    <button class="btn sky" id="btnMic">🎤 Mic check</button>
+  </div>
+  <div class="homeFoot">💻 On this PC, start with <b>Start Rhythm Quest.bat</b> so the microphone works.<br>📱 On iPad, open <b>rosalynchen22-sketch.github.io/rhythm-quest</b> in Safari (Mic Mode: Standard).</div>
+</div>
+
+<!-- ================= GAME ================= -->
+<div class="scr" id="scrGame">
+  <div class="topbar">
+    <span class="chip" id="chLvl">🐣 Level 1</span>
+    <span class="chip">Pattern <b id="chNum">1</b>/<span id="chTot">6</span></span>
+    <span class="chip">⭐ <b id="chScore">0</b></span>
+    <span class="chip">🔥 <b id="chStreak">0</b></span>
+  </div>
+  <div class="status" id="status">Get ready…</div>
+  <div class="staffCard">
+    <svg id="staff" viewBox="0 0 760 216" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="countNum" id="countNum"></div>
+  </div>
+  <div class="lights"><div class="bl" id="bl0"></div><div class="bl" id="bl1"></div><div class="bl" id="bl2"></div><div class="bl" id="bl3"></div></div>
+  <div class="meterWrap" id="meterWrap"><div class="meterFill" id="meterFill"></div></div>
+  <div class="gameBtns">
+    <button class="btn mint" id="btnNext" style="display:none">Next ▶</button>
+    <button class="btn ghost" id="btnRetry" style="display:none">🔁 Hear it again</button>
+    <button class="btn ghost" id="btnQuit">🏠 Stop</button>
+  </div>
+</div>
+
+<!-- ================= RESULTS ================= -->
+<div class="scr" id="scrResults">
+  <div class="logo" style="font-size:34px;margin-top:24px"><span class="c2">Round</span> <span class="c3">complete!</span> <span>🎉</span></div>
+  <div class="card">
+    <div class="bigStars" id="resStars"></div>
+    <div class="praise" id="resPraise"></div>
+    <div class="subScore" id="resSub"></div>
+    <div class="patRow" id="resChips"></div>
+  </div>
+  <div class="row">
+    <button class="btn big coral" id="btnAgain">▶ Play again</button>
+    <button class="btn ghost" id="btnHome">🏠 Home</button>
+  </div>
+</div>
+
+<!-- ================= MIC CHECK ================= -->
+<div class="scr" id="scrMic">
+  <div class="logo" style="font-size:32px;margin-top:20px"><span class="c4">Mic</span> <span class="c2">check</span> <span>🎤</span></div>
+  <div class="card">
+    <h3>Clap and watch the bar jump</h3>
+    <div class="micMeter"><div id="mcFill"></div></div>
+    <div class="micMsg" id="mcStat" style="margin-top:2px"></div>
+    <div class="clapBig" id="mcClap">👂 listening…</div>
+    <div class="row" style="margin-top:6px">
+      <select id="mcDev"><option value="">Default microphone</option></select>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn sky" id="btnCal">⏱️ Clap with the beat (tune timing)</button>
+    </div>
+    <div class="micMsg" id="mcMsg"></div>
+  </div>
+  <div class="row"><button class="btn ghost" id="btnMicBack">← Back</button></div>
+</div>
+
+</div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ============ settings ============ */
+const DEF={name:"",level:1,input:"mic",tempoAdj:0,count:6,syl:1,micId:"",clapOffset:60,v:1};
+let S={...DEF};
+try{const j=JSON.parse(localStorage.getItem("rq.settings.v1"));if(j&&j.v===1)S={...DEF,...j};}catch(e){}
+function save(){try{localStorage.setItem("rq.settings.v1",JSON.stringify(S));}catch(e){}}
+
+/* ============ levels & rhythm cells ============ */
+const CELLS={
+  ta:      {beats:1,on:[0]},
+  rest:    {beats:1,on:[]},
+  titi:    {beats:1,on:[0,.5]},
+  half:    {beats:2,on:[0]},
+  dotted:  {beats:2,on:[0,1.5]},
+  syncopa: {beats:2,on:[0,.5,1.5]},
+  tikatika:{beats:1,on:[0,.25,.5,.75]},
+  titika:  {beats:1,on:[0,.5,.75]},
+  tikati:  {beats:1,on:[0,.25,.5]},
+};
+// subdivision counting: beat number on the beat, "e & a" inside the beat
+function countFor(pos){
+  const b=Math.floor(pos+1e-6),f=pos-b;
+  return f<.125?String(b+1):f<.375?"e":f<.625?"&":"a";
+}
+const LEVELS=[
+  {n:1,em:"🐣",name:"Quarters",    bpm:76,desc:"quarter notes & rests",cells:["ta","ta","ta","rest"]},
+  {n:2,em:"🐰",name:"Eighths",     bpm:80,desc:"add running eighths",  cells:["ta","ta","titi","titi","rest"]},
+  {n:3,em:"🦊",name:"Long Notes",  bpm:84,desc:"add half notes",       cells:["ta","titi","titi","rest","half","half"]},
+  {n:4,em:"🐯",name:"Syncopation", bpm:88,desc:"dotted & off-beat",    cells:["ta","titi","rest","half","dotted","dotted","syncopa","syncopa"]},
+  {n:5,em:"🐉",name:"Sixteenths",  bpm:92,desc:"1 e & a speed!",       cells:["ta","titi","dotted","syncopa","tikatika","tikatika","titika","tikati"]},
+];
+let lastSig="";
+function genPattern(lv){
+  for(let tries=0;tries<40;tries++){
+    const cells=[];let b=0,rests=0,prevRest=false;
+    while(b<4){
+      let pool=lv.cells.filter(c=>CELLS[c].beats<=4-b);
+      if(b===0)pool=pool.filter(c=>c!=="rest");
+      if(prevRest||rests>=2)pool=pool.filter(c=>c!=="rest");
+      if(!pool.length)pool=["ta"];
+      const c=rnd(pool);
+      cells.push({c,at:b});
+      prevRest=(c==="rest"); if(prevRest)rests++;
+      b+=CELLS[c].beats;
+    }
+    const onsets=[],syls=[];
+    cells.forEach(x=>{CELLS[x.c].on.forEach(o=>{onsets.push(x.at+o);syls.push(countFor(x.at+o));});});
+    const sig=onsets.join(",");
+    if(onsets.length<2)continue;
+    if(sig===lastSig&&tries<30)continue;
+    lastSig=sig;
+    return {cells,onsets,syls};
+  }
+}
+
+/* ============ audio ============ */
+let AC=null;
+function ac(){
+  if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+  if(AC.state!=="running")AC.resume();   // iOS also has a non-standard "interrupted" state
+  return AC;
+}
+let master=null;
+function mg(){const A=ac();if(!master){master=A.createGain();master.gain.value=.9;master.connect(A.destination);}return master;}
+let appSoundUntil=0;
+function markSound(t,d){appSoundUntil=Math.max(appSoundUntil,t+d+.15);}
+function blip(t,f,d,vol,type){
+  const A=ac(),o=A.createOscillator(),g=A.createGain();
+  o.type=type||"triangle";o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+d);
+  o.connect(g);g.connect(mg());o.start(t);o.stop(t+d+.02);markSound(t,d);
+}
+function tick(t,accent){blip(t,accent?1320:880,.06,accent?.4:.28,"triangle");}
+function wood(t){ // friendly woodblock for the rhythm pattern
+  const A=ac(),o=A.createOscillator(),g=A.createGain();
+  o.type="sine";o.frequency.setValueAtTime(820,t);o.frequency.exponentialRampToValueAtTime(390,t+.07);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.75,t+.004);g.gain.exponentialRampToValueAtTime(.001,t+.11);
+  o.connect(g);g.connect(mg());o.start(t);o.stop(t+.13);
+  const n=A.createBufferSource(),buf=A.createBuffer(1,2048,A.sampleRate),ch=buf.getChannelData(0);
+  for(let i=0;i<2048;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/2048,2);
+  n.buffer=buf;const bp=A.createBiquadFilter();bp.type="bandpass";bp.frequency.value=2100;bp.Q.value=1.2;
+  const g2=A.createGain();g2.gain.value=.3;n.connect(bp);bp.connect(g2);g2.connect(mg());n.start(t);
+  markSound(t,.13);
+}
+function chime(good){const A=ac(),t=A.currentTime+.02;
+  if(good>=3){blip(t,660,.12,.3);blip(t+.1,880,.12,.3);blip(t+.2,1320,.2,.3);}
+  else if(good===2){blip(t,660,.12,.3);blip(t+.12,990,.18,.3);}
+  else if(good===1){blip(t,520,.15,.25);}
+  else{blip(t,330,.2,.2,"sine");}
+}
+
+/* ============ microphone (clap detection) ============ */
+// iPad needs a fresh stream per question (iPadOS permanently lowers mic gain
+// after app audio plays); on PC restarting mid-round makes the driver re-settle
+// right when the student claps, so there the stream stays open all round.
+const IS_IPAD=/iPad|iPhone/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const mic={active:false,stream:null,an:null,gn:null,src:null,buf:null,
+  gain:Math.min(60,Math.max(2,S.micGain||4)),floor:.008,hist:[],last:0,level:0,fails:0,
+  sawSignal:false,aliveSince:0,usedDefaults:false,diagShown:false};
+async function startMic(){
+  stopMic();
+  const A=ac();
+  // iPad: use the platform's DEFAULT audio processing — requesting raw capture
+  // (echoCancellation:false etc.) yields a broken/silent stream on some iPadOS
+  // versions, and Note Quest (which works on this iPad) uses defaults.
+  // PC: raw capture preserves the sharp clap transient; if the stream turns out
+  // silent, the watchdog in micLoop retries once with defaults there too.
+  const cons=(IS_IPAD||mic.usedDefaults)?{}:
+    {echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+  if(S.micId)cons.deviceId={ideal:S.micId};
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:Object.keys(cons).length?cons:true});}
+  catch(e){micFail(e);return false;}
+  mic.stream=stream;
+  mic.src=A.createMediaStreamSource(stream);
+  mic.gn=A.createGain();mic.gn.gain.value=mic.gain;
+  mic.an=A.createAnalyser();mic.an.fftSize=2048;
+  mic.src.connect(mic.gn);mic.gn.connect(mic.an);
+  mic.buf=new Float32Array(mic.an.fftSize);
+  mic.floor=.008;mic.hist=[];mic.active=true;mic.fails=0;mic.env=0;mic.lastT=0;
+  mic.sawSignal=false;mic.aliveSince=A.currentTime||.001;  // never 0: 0 is falsy and would disable the silent-stream watchdog
+  return true;
+}
+function stopMic(){
+  if(mic.stream)mic.stream.getTracks().forEach(t=>t.stop());
+  mic.stream=null;mic.active=false;mic.level=0;
+  // remember the learned gain so Mic check's calibration carries into rounds
+  const g=Math.min(60,Math.max(1,Math.round(mic.gain*10)/10));
+  if(g!==S.micGain){S.micGain=g;save();}
+}
+function micSilent(){
+  if(mic.diagShown)return;mic.diagShown=true;
+  const msg="The microphone is connected but I hear only silence. On iPad: Control Center → Mic Mode → <b>Standard</b>, close other apps using the mic, then reload. Or pick a different microphone in 🎤 Mic check.";
+  if($("scrMic").classList.contains("active"))$("mcMsg").innerHTML="⚠️ "+msg;
+  else toast("🎤 "+msg);
+}
+function micFail(e){
+  console.warn("mic",e);
+  let msg="I couldn't reach the microphone";
+  if(location.protocol==="file:")msg+=" — on this PC, please start the game with <b>Start Rhythm Quest.bat</b>";
+  else if(window.self!==window.top)msg+=" — this preview page can't use the mic. Open <b>rosalynchen22-sketch.github.io/rhythm-quest</b> in Safari instead";
+  toast("🎤 "+msg+". Switching to Tap mode 👆");
+  S.input="tap";save();paintOpts();
+  if($("mcMsg"))$("mcMsg").innerHTML="Microphone blocked. "+(location.protocol==="file:"?"Start the game with <b>Start Rhythm Quest.bat</b> (mics don't work on double-clicked files).":"Check the browser's mic permission, then reopen this screen.");
+}
+function micLoop(){
+  if(!mic.active||!mic.an)return;
+  const A=AC;if(!A)return;
+  if(A.state!=="running")A.resume();  // iPad suspends (or "interrupt"s) AC when mic starts / app switches
+  if(mic.an.getFloatTimeDomainData)mic.an.getFloatTimeDomainData(mic.buf);
+  else{ // older Safari lacks the float variant
+    if(!mic.bbuf)mic.bbuf=new Uint8Array(mic.an.fftSize);
+    mic.an.getByteTimeDomainData(mic.bbuf);
+    for(let i=0;i<mic.bbuf.length;i++)mic.buf[i]=(mic.bbuf[i]-128)/128;
+  }
+  let p=0;for(let i=0;i<mic.buf.length;i++){const v=Math.abs(mic.buf[i]);if(v>p)p=v;}
+  const now=A.currentTime;
+  const appNoise=now<appSoundUntil;
+  // silent-stream watchdog: mic granted but delivering nothing (iOS muted track,
+  // sample-rate handoff, or raw-capture bug) → reacquire once with default
+  // processing; if it is STILL silent, tell the user what to check.
+  if(p>.003)mic.sawSignal=true;
+  if(!mic.sawSignal&&mic.aliveSince&&now-mic.aliveSince>3.5){
+    mic.aliveSince=now;
+    if(!mic.usedDefaults){mic.usedDefaults=true;startMic();return;}
+    micSilent();
+  }
+  // adaptive noise floor
+  if(p<mic.floor*2.2)mic.floor=mic.floor*.99+p*.01;
+  else if(!appNoise)mic.floor=Math.min(mic.floor*1.004,.12);
+  mic.floor=Math.max(mic.floor,.0015);
+  // software AGC (iPad Safari ignores autoGainControl; raw level is tiny).
+  // Gentle on the way down so one loud clap can't crush the next soft one.
+  // The boost is gated on a LOW noise floor: without that gate, ambient room
+  // noise itself enters the boost band as gain rises and ratchets it to the
+  // cap, where everything clips and the onset detector goes completely deaf
+  // (the "mic check AND game both dead" failure). The floor-based decay below
+  // also self-heals a bad persisted gain within a couple of seconds.
+  if(!appNoise&&p>mic.floor*3){
+    if(p<.22&&mic.floor<.04)mic.gain=Math.min(mic.gain*1.12,60);
+    else if(p>.85)mic.gain=Math.max(mic.gain*.9,1);
+  }
+  mic.hist.push({t:now,p});
+  while(mic.hist.length&&mic.hist[0].t<now-.35)mic.hist.shift();
+  let quiet=1;
+  for(const h of mic.hist){if(h.t>=now-.30&&h.t<=now-.07&&h.p<quiet)quiet=h.p;}
+  if(quiet===1)quiet=0;
+  // back off when even the QUIET moments are loud (runaway/stale gain). Keyed
+  // to `quiet`, not the noise floor: the floor lags a falling gain and kept
+  // the decay running long past the healthy point (overshot to gain 1).
+  if(!appNoise&&quiet>.06)mic.gain=Math.max(mic.gain*.97,1);
+  if(mic.gn)mic.gn.gain.value=mic.gain;
+  mic.level=p;
+  // peak-follower onset gate: a decaying envelope tracks the last peak; a new
+  // clap climbs back above the curve, an echo tail never does. This registers
+  // soft claps that follow loud ones (their reverb tails defeated the old
+  // quiet-ratio + fresh-max tests on eighth-note runs).
+  const dt=mic.lastT?now-mic.lastT:1;mic.lastT=now;
+  const envPrev=mic.env||0;
+  mic.env=Math.max(p,envPrev*Math.exp(-dt/.12));
+  if(!appNoise
+     &&p>Math.max(.04,mic.floor*2.5)
+     &&(p>quiet*1.8+.01||p>.13)
+     &&p>envPrev*1.15
+     &&now-mic.last>.1){
+    mic.last=now;clapAt(now,"mic");
+  }
+}
+
+/* ============ game state ============ */
+const state={playing:false,qIndex:0,total:6,score:0,streak:0,best:0,
+  pat:null,bpm:80,turnStart:0,turnEnd:0,claps:[],capturing:false,
+  VE:[],results:[],retried:false,autoClap:false};
+
+function clapAt(t,srcKind){
+  if(state.capturing&&t>state.turnStart-.35&&t<state.turnEnd){
+    state.claps.push(t);
+    addClapTick(t);
+    fx("👏");
+  }
+  const mc=$("mcClap");
+  if($("scrMic").classList.contains("active")){
+    mc.textContent="👏 CLAP!";mc.classList.remove("hit");void mc.offsetWidth;mc.classList.add("hit");
+    clearTimeout(mc._t);mc._t=setTimeout(()=>{mc.textContent="👂 listening…";mc.classList.remove("hit");},700);
+    if(cal.on)cal.claps.push(t);
+  }
+}
+function fx(em){
+  const s=document.createElement("span");s.className="clapFx";s.textContent=em;
+  s.style.left=(30+Math.random()*40)+"vw";s.style.top=(45+Math.random()*20)+"vh";
+  document.body.appendChild(s);setTimeout(()=>s.remove(),850);
+}
+
+/* ============ notation (SVG) ============ */
+const X0=52,BW=162,SY=118,STEM=64;
+const xOf=pos=>X0+pos*BW+22;
+function drawPattern(pat,showSyl){
+  let s="";
+  s+=`<line x1="14" y1="${SY}" x2="746" y2="${SY}" stroke="#c8b995" stroke-width="3"/>`;
+  for(let b=0;b<4;b++)s+=`<circle cx="${xOf(b)}" cy="${SY+34}" r="3.5" fill="#e4d6b4"/>`;
+  let ei=0; // onset index across pattern
+  pat.cells.forEach(cell=>{
+    const C=CELLS[cell.c],at=cell.at;
+    const cnt=o=>countFor(at+o);
+    if(cell.c==="rest"){
+      const x=xOf(at);
+      s+=`<g class="ev" id="ev${ei}"><path class="restg" d="M${x-4} ${SY-30} L${x+8} ${SY-15} Q${x-3} ${SY-8} ${x+7} ${SY+2} Q${x-7} ${SY-1} ${x+1} ${SY+12} Q${x-11} ${SY+8} ${x-6} ${SY}"/></g>`;
+      if(showSyl)s+=`<text class="syl" x="${x}" y="${SY+62}" opacity=".55">(${cnt(0)})</text>`;
+      ei++;return;
+    }
+    if(cell.c==="ta"){s+=note(xOf(at),ei,false);if(showSyl)s+=syl(xOf(at),cnt(0));ei++;return;}
+    if(cell.c==="half"){s+=note(xOf(at),ei,true);if(showSyl)s+=syl(xOf(at),cnt(0)+" –");ei++;return;}
+    if(cell.c==="titi"){
+      const x1=xOf(at),x2=xOf(at+.5);
+      s+=`<g class="ev" id="ev${ei}">`+headStem(x1)+`</g><g class="ev" id="ev${ei+1}">`+headStem(x2)+`</g>`;
+      s+=beam(x1,x2,0);
+      if(showSyl){s+=syl(x1,cnt(0));s+=syl(x2,cnt(.5));}
+      ei+=2;return;
+    }
+    if(cell.c==="dotted"){
+      const x1=xOf(at),x2=xOf(at+1.5);
+      s+=`<g class="ev" id="ev${ei}">`+headStem(x1)+`<circle class="hd" cx="${x1+21}" cy="${SY-7}" r="4.5"/></g>`;
+      s+=`<g class="ev" id="ev${ei+1}">`+headStem(x2)+flag(x2)+`</g>`;
+      if(showSyl){s+=syl(x1,cnt(0));s+=syl(x2,cnt(1.5));}
+      ei+=2;return;
+    }
+    if(cell.c==="syncopa"){
+      const x1=xOf(at),x2=xOf(at+.5),x3=xOf(at+1.5);
+      s+=`<g class="ev" id="ev${ei}">`+headStem(x1)+flag(x1)+`</g>`;
+      s+=`<g class="ev" id="ev${ei+1}">`+headStem(x2)+`</g>`;
+      s+=`<g class="ev" id="ev${ei+2}">`+headStem(x3)+flag(x3)+`</g>`;
+      if(showSyl){s+=syl(x1,cnt(0));s+=syl(x2,cnt(.5));s+=syl(x3,cnt(1.5));}
+      ei+=3;return;
+    }
+    if(cell.c==="tikatika"||cell.c==="titika"||cell.c==="tikati"){
+      const ons=C.on.map(o=>xOf(at+o));
+      ons.forEach((x,i)=>{s+=`<g class="ev" id="ev${ei+i}">`+headStem(x)+`</g>`;});
+      s+=beam(ons[0],ons[ons.length-1],0);
+      if(cell.c==="tikatika")s+=beam(ons[0],ons[3],1);
+      if(cell.c==="titika")s+=beam(ons[1],ons[2],1);
+      if(cell.c==="tikati")s+=beam(ons[0],ons[1],1);
+      if(showSyl)C.on.forEach((o,i)=>{s+=syl(ons[i],cnt(o));});
+      ei+=ons.length;return;
+    }
+  });
+  $("staff").innerHTML=s;
+}
+function headStem(x){
+  return `<ellipse class="hd" cx="${x}" cy="${SY}" rx="11.5" ry="8.5" transform="rotate(-18 ${x} ${SY})"/>`+
+         `<line class="st" x1="${x+10.5}" y1="${SY-3}" x2="${x+10.5}" y2="${SY-STEM}"/>`;
+}
+function note(x,ei,open){
+  const h=open
+    ?`<ellipse class="op" cx="${x}" cy="${SY}" rx="11.5" ry="8.5" transform="rotate(-18 ${x} ${SY})"/>`
+    :`<ellipse class="hd" cx="${x}" cy="${SY}" rx="11.5" ry="8.5" transform="rotate(-18 ${x} ${SY})"/>`;
+  return `<g class="ev" id="ev${ei}">${h}<line class="st" x1="${x+10.5}" y1="${SY-3}" x2="${x+10.5}" y2="${SY-STEM}"/></g>`;
+}
+function beam(x1,x2,lvl){const y=SY-STEM+lvl*13;return `<rect class="beam" x="${x1+8.5}" y="${y}" width="${x2-x1+4}" height="8" rx="2"/>`;}
+function flag(x){const sx=x+10.5,ty=SY-STEM;
+  return `<path class="beam" d="M${sx} ${ty} C ${sx+16} ${ty+8} ${sx+18} ${ty+20} ${sx+10} ${ty+32} C ${sx+15} ${ty+20} ${sx+10} ${ty+12} ${sx} ${ty+8} Z"/>`;}
+function syl(x,t){return `<text class="syl" x="${x}" y="${SY+62}">${t}</text>`;}
+function addClapTick(t){
+  const bt=60/state.bpm;
+  const pos=(t-state.turnStart)/bt;
+  if(pos<-.3||pos>4.3)return;
+  const x=xOf(Math.max(0,Math.min(4,pos)));
+  const el=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  el.setAttribute("cx",x);el.setAttribute("cy",SY+82);el.setAttribute("r",7);el.setAttribute("class","clapTick");
+  $("staff").appendChild(el);
+}
+function addMarks(marks,onsets){
+  marks.forEach((m,i)=>{
+    const x=xOf(onsets[i]);
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x);t.setAttribute("y",SY+104);t.setAttribute("class","mk");
+    t.setAttribute("fill",m===2?"#1fae7d":m===1?"#e09a00":"#e2574a");
+    t.textContent=m===2?"✓":m===1?"~":"✗";
+    $("staff").appendChild(t);
+  });
+}
+
+/* ============ round flow ============ */
+function lvl(){return LEVELS[S.level-1];}
+async function beginRound(){
+  state.playing=true;state.qIndex=0;state.total=S.count;state.score=0;state.streak=0;state.best=0;
+  state.results=[];state.bpm=Math.max(56,lvl().bpm+S.tempoAdj);
+  $("chLvl").textContent=lvl().em+" Level "+lvl().n;
+  $("chTot").textContent=state.total;
+  show("scrGame");
+  if(S.input==="mic"){
+    // Front-load iOS's permission prompt (and the driver hookup) here, before
+    // any pattern audio plays, so every later reopen is instant with no dialog.
+    setStatus("🎤 Getting ready…","");
+    await startMic();
+    if(!state.playing)return;
+    if(IS_IPAD)stopMic();   // release now; each pattern reopens fresh, late, after its own audio (see playQuestion)
+  }
+  nextQuestion(false);
+}
+async function nextQuestion(sameAgain){
+  if(!state.playing)return;
+  state.capturing=false;state.claps=[];state.VE=[];
+  $("btnNext").style.display="none";$("btnRetry").style.display="none";
+  $("chNum").textContent=state.qIndex+1;
+  $("chScore").textContent=state.score;$("chStreak").textContent=state.streak;
+  if(!sameAgain){state.pat=genPattern(lvl());state.retried=false;}
+  drawPattern(state.pat,S.syl===1);
+  setStatus("👂 Listen…","");
+  $("meterWrap").classList.toggle("show",S.input==="mic");
+  if(S.input==="mic"&&!IS_IPAD&&!mic.active){
+    // PC: acquire once and keep the stream warm for the whole round (mid-round
+    // restarts made the Windows driver re-settle right when the child clapped).
+    const ok=await startMic();
+    if(!state.playing)return;
+    if(!ok)$("meterWrap").classList.remove("show");
+  }
+  playQuestion();
+}
+function playQuestion(){
+  const A=ac(),bt=60/state.bpm;
+  const t0=A.currentTime+.5;
+  const patStart=t0+4*bt, turnStart=patStart+4*bt, turnEnd=turnStart+4*bt+.75*bt;
+  state.turnStart=turnStart;state.turnEnd=turnEnd;
+  // audio: count-in ticks + pattern woodblocks.  NOTHING sounds during the child's turn
+  for(let i=0;i<4;i++)tick(t0+i*bt,i===0);
+  state.pat.onsets.forEach(o=>wood(patStart+o*bt));
+  // visuals
+  const VE=state.VE;
+  for(let i=0;i<4;i++)VE.push({t:t0+i*bt,fn:()=>{light(i);countNum(i+1);}});
+  state.pat.onsets.forEach((o,i)=>VE.push({t:patStart+o*bt,fn:()=>litNote(i)}));
+  for(let i=0;i<4;i++)VE.push({t:patStart+i*bt,fn:()=>light(i)});
+  if(S.input==="mic"&&IS_IPAD){
+    // Reopen the mic strictly AFTER the pattern's last note has finished sounding
+    // (not just "one beat early" — dense/late-onset patterns can still have a
+    // note ringing inside that last beat). iPadOS applies OS-level echo
+    // suppression the instant audio plays while the mic is open, and never
+    // restores the gain on its own; opening late sidesteps the trigger while
+    // still preferring a full beat of setup lead when the pattern allows it.
+    const lastAudioEnd=patStart+Math.max(...state.pat.onsets)*bt+.15;
+    const reopenAt=Math.max(lastAudioEnd,turnStart-bt);
+    VE.push({t:reopenAt,fn:()=>{if(state.playing)startMic();}});
+  }
+  VE.push({t:turnStart-.02,fn:()=>{unlitAll();state.capturing=true;setStatus("👏 Your turn!","turn");}});
+  for(let i=0;i<4;i++)VE.push({t:turnStart+i*bt,fn:()=>light(i,true)});
+  VE.push({t:turnEnd,fn:finishTurn});
+  VE.sort((a,b)=>a.t-b.t);
+}
+let litPrev=-1;
+function litNote(i){if(litPrev>=0){const p=$("ev"+litPrev);if(p)p.classList.remove("lit");}
+  const e=$("ev"+i);if(e)e.classList.add("lit");litPrev=i;}
+function unlitAll(){document.querySelectorAll("g.ev.lit").forEach(e=>e.classList.remove("lit"));litPrev=-1;}
+function light(i,go){
+  for(let k=0;k<4;k++){const b=$("bl"+k);b.classList.toggle("on",k===i);b.classList.toggle("go",!!go);}
+}
+function countNum(n){const c=$("countNum");c.textContent=n;c.classList.remove("pop");void c.offsetWidth;c.classList.add("pop");}
+function setStatus(t,cls){const s=$("status");s.textContent=t;s.className="status "+(cls||"");}
+
+function finishTurn(){
+  state.capturing=false;
+  light(-1);
+  if(S.input==="mic"&&IS_IPAD)stopMic();   // PC keeps the stream warm between patterns
+  const bt=60/state.bpm;
+  const exp=state.pat.onsets.map(o=>state.turnStart+o*bt);
+  // mic latency self-calibration: audio output + mic input delay shifts every
+  // clap by the same amount (can be 200-400ms on PC). If the claps share a
+  // consistent shift, compensate before scoring and remember it for next time.
+  let off=(S.input==="mic"?S.clapOffset:0)/1000;
+  if(S.input==="mic"&&state.claps.length>=2){
+    // grid-search the shift that aligns the whole pattern best (a simple
+    // nearest-note median aliases to the wrong note once latency exceeds
+    // half the smallest note gap)
+    let best=off,bestQ=-1;
+    for(let cand=-.12;cand<=.451;cand+=.01){
+      let q=0;
+      exp.forEach(e=>{
+        let d=1e9;
+        state.claps.forEach(c=>{const x=Math.abs(c-cand-e);if(x<d)d=x;});
+        q+=Math.max(0,1-d/(bt*.4));
+      });
+      if(q>bestQ+1e-9||(Math.abs(q-bestQ)<=1e-9&&Math.abs(cand-off)<Math.abs(best-off))){bestQ=q;best=cand;}
+    }
+    // refine with the median residual at the winning shift
+    const res=[];
+    exp.forEach(e=>{
+      let bd=1e9;
+      state.claps.forEach(c=>{const d=c-best-e;if(Math.abs(d)<Math.abs(bd))bd=d;});
+      if(Math.abs(bd)<=bt*.3)res.push(bd);
+    });
+    if(res.length>=2){
+      res.sort((a,b)=>a-b);
+      const m=best+res[Math.floor(res.length/2)];
+      if(m>=-.12&&m<=.45){
+        off=m;
+        S.clapOffset=Math.max(0,Math.min(450,Math.round(S.clapOffset*.5+m*1000*.5)));
+        save();
+      }
+    }
+  }
+  const claps=state.claps.map(c=>c-off).sort((a,b)=>a-b);
+  // per-note timing windows: each note's tolerance depends on the gap to ITS
+  // neighbours, so a pair of fast notes doesn't make lone quarter notes strict
+  const gaps=exp.map((e,i)=>{
+    let g=bt;
+    if(i>0)g=Math.min(g,e-exp[i-1]);
+    if(i<exp.length-1)g=Math.min(g,exp[i+1]-e);
+    return g;
+  });
+  const perfW=gaps.map(g=>Math.min(.13,g*.34)), goodW=gaps.map(g=>Math.min(.26,g*.49));
+  const used=new Array(claps.length).fill(false);
+  const marks=exp.map((e,k)=>{
+    let bi=-1,bd=1e9;
+    claps.forEach((c,i)=>{if(!used[i]){const d=Math.abs(c-e);if(d<bd){bd=d;bi=i;}}});
+    if(bi>=0&&bd<=goodW[k]){used[bi]=true;return bd<=perfW[k]?2:1;}
+    return 0;
+  });
+  const extras=used.filter(u=>!u).length;
+  let pct=marks.reduce((a,m)=>a+m,0)/(2*exp.length);
+  if(extras>1)pct-=.1*(extras-1);
+  pct=Math.max(0,pct);
+  const stars=pct>=.82?3:pct>=.5?2:pct>=.3?1:0;
+  state.lastScore={offMs:Math.round(off*1000),claps:claps.length,extras,marks:marks.join("")};
+  addMarks(marks,state.pat.onsets);
+  state.score+=stars;
+  state.streak=stars>=2?state.streak+1:0;
+  state.best=Math.max(state.best,state.streak);
+  $("chScore").textContent=state.score;$("chStreak").textContent=state.streak;
+  const name=S.name?S.name+", ":"";
+  const msgs=[
+    ["Let's try that one again! 💪","Almost — listen once more! 👂"],
+    ["Good try! ⭐","Keep going! ⭐"],
+    [name+"great clapping! ⭐⭐","Nice rhythm! ⭐⭐"],
+    [name+"PERFECT echo! ⭐⭐⭐","WOW! Super claps! ⭐⭐⭐"],
+  ][stars];
+  setStatus(rnd(msgs),stars>=2?"turn":"");
+  chime(stars);
+  if(state.results[state.qIndex]===undefined||stars>state.results[state.qIndex])
+    state.results[state.qIndex]=stars;
+  $("btnNext").style.display="";
+  $("btnNext").textContent=state.qIndex+1>=state.total?"Finish 🏁":"Next ▶";
+  if(stars<=1&&!state.retried)$("btnRetry").style.display="";
+}
+$("btnRetry").onclick=()=>{
+  state.retried=true;
+  state.score-=state.results[state.qIndex]||0;   // retry replaces this pattern's stars
+  state.results[state.qIndex]=undefined;
+  nextQuestion(true);
+};
+$("btnNext").onclick=()=>{
+  state.qIndex++;
+  if(state.qIndex>=state.total)endRound();else nextQuestion(false);
+};
+$("btnQuit").onclick=()=>{state.playing=false;stopMic();show("scrHome");};
+
+function endRound(){
+  state.playing=false;stopMic();
+  // recompute score from results (retries already handled)
+  const stars=state.results.reduce((a,b)=>a+(b||0),0),max=state.total*3;
+  const pct=stars/max;
+  $("resStars").textContent="⭐ "+stars+" / "+max;
+  const nm=S.name||"Super clapper";
+  $("resPraise").textContent=
+    pct>=.9?nm+", you're a Rhythm Master! 🏆":
+    pct>=.7?nm+", fantastic echoes! 🎉":
+    pct>=.45?nm+", great practicing! 💪":
+    nm+", every clap makes you stronger! 🌱";
+  $("resSub").textContent="Best streak: "+state.best+" 🔥 · "+lvl().em+" Level "+lvl().n+" · "+state.bpm+" bpm";
+  $("resChips").innerHTML=state.results.map((r,i)=>`<span class="patChip">${i+1}: ${"⭐".repeat(r||0)||"—"}</span>`).join("");
+  show("scrResults");
+  if(pct>=.7)confetti();
+}
+function confetti(){
+  const ems=["🎉","⭐","👏","🎵","✨"];
+  for(let i=0;i<26;i++){
+    const s=document.createElement("span");s.className="confetti";s.textContent=rnd(ems);
+    s.style.left=Math.random()*100+"vw";s.style.animationDuration=(2+Math.random()*2)+"s";
+    s.style.animationDelay=(Math.random()*.8)+"s";
+    document.body.appendChild(s);setTimeout(()=>s.remove(),5000);
+  }
+}
+$("btnAgain").onclick=()=>beginRound();
+$("btnHome").onclick=()=>show("scrHome");
+
+/* ============ main loop ============ */
+/* driven by BOTH rAF and a setInterval backup: rAF stalls when the tab/app
+   is backgrounded (iPad app-switch) while the scheduled audio keeps playing */
+function raf(){
+  requestAnimationFrame(raf);
+  tickFrame();
+}
+function tickFrame(){
+  micLoop();
+  if(AC){
+    const now=AC.currentTime;
+    while(state.VE.length&&state.VE[0].t<=now)state.VE.shift().fn();
+    if(state.autoClap&&state.capturing){ // debug: simulate perfect claps (window.__rq.autoClap=true)
+      const bt=60/state.bpm,off=(S.input==="mic"?S.clapOffset:0)/1000;
+      state.pat.onsets.forEach(o=>{
+        const t=state.turnStart+o*bt+off;
+        if(now>=t&&!state.claps.some(c=>Math.abs(c-(t-off))<.02)&&now<t+.05)clapAt(t-off,"sim");
+      });
+    }
+  }
+  const lv=Math.min(1,mic.level*1.6);
+  if($("meterWrap").classList.contains("show"))$("meterFill").style.width=(lv*100)+"%";
+  if($("scrMic").classList.contains("active")){
+    $("mcFill").style.width=(lv*100)+"%";
+    $("mcStat").textContent=mic.active
+      ?("boost ×"+mic.gain.toFixed(1)+(mic.sawSignal?" · hearing the room ✓":" · waiting for any sound…"))
+      :"";
+  }
+}
+requestAnimationFrame(raf);
+setInterval(tickFrame,40);
+
+/* ============ mic check & calibration ============ */
+const cal={on:false,claps:[],ticks:[]};
+$("btnMic").onclick=async()=>{
+  show("scrMic");
+  $("mcMsg").textContent="";
+  const ok=await startMic();
+  if(ok){
+    $("mcMsg").textContent="Timing offset: "+S.clapOffset+" ms · clap a few times!";
+    try{
+      const devs=await navigator.mediaDevices.enumerateDevices();
+      const sel=$("mcDev");sel.innerHTML='<option value="">Default microphone</option>';
+      devs.filter(d=>d.kind==="audioinput").forEach(d=>{
+        const o=document.createElement("option");o.value=d.deviceId;o.textContent=d.label||("Microphone "+sel.length);
+        if(d.deviceId===S.micId)o.selected=true;sel.appendChild(o);
+      });
+    }catch(e){}
+  }
+};
+$("mcDev").onchange=async e=>{S.micId=e.target.value;save();await startMic();};
+$("btnMicBack").onclick=()=>{stopMic();cal.on=false;show("scrHome");};
+$("btnCal").onclick=()=>{
+  const A=ac(),bpm=92,bt=60/bpm,t0=A.currentTime+.6;
+  cal.on=true;cal.claps=[];cal.ticks=[];
+  $("mcMsg").textContent="Clap together with every beat… 8 beats!";
+  for(let i=0;i<8;i++){tick(t0+i*bt,i%4===0);cal.ticks.push(t0+i*bt);}
+  setTimeout(()=>{
+    cal.on=false;
+    const offs=[];
+    cal.ticks.slice(2).forEach(tk=>{ // skip first 2 while the child locks in
+      let bd=1e9;cal.claps.forEach(c=>{const d=c-tk;if(Math.abs(d)<Math.abs(bd))bd=d;});
+      if(Math.abs(bd)<bt*.45)offs.push(bd*1000);
+    });
+    if(offs.length>=3){
+      offs.sort((a,b)=>a-b);
+      S.clapOffset=Math.round(Math.max(0,Math.min(450,offs[Math.floor(offs.length/2)])));
+      save();
+      $("mcMsg").textContent="✅ Tuned! Your timing offset is "+S.clapOffset+" ms.";
+    }else $("mcMsg").textContent="Hmm, I only heard "+cal.claps.length+" claps — try again, nice and loud!";
+  },(8*bt+1)*1000);
+};
+
+/* ============ tap input & unlock ============ */
+document.addEventListener("pointerdown",e=>{
+  ac(); // unlock audio on any gesture (iPad requirement)
+  if(state.capturing&&$("scrGame").classList.contains("active")&&!e.target.closest("button"))
+    clapAt(AC.currentTime,"tap");
+},{passive:true});
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&!e.repeat){e.preventDefault();ac();if(state.capturing)clapAt(AC.currentTime,"tap");}
+});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&AC&&AC.state==="suspended")AC.resume();});
+
+/* ============ home UI ============ */
+function paintLevels(){
+  $("lvlGrid").innerHTML=LEVELS.map(l=>
+    `<div class="lvl${l.n===S.level?" sel":""}" data-n="${l.n}"><span class="em">${l.em}</span><b>${l.n}. ${l.name}</b><small>${l.desc}</small></div>`).join("");
+  document.querySelectorAll(".lvl").forEach(el=>el.onclick=()=>{S.level=+el.dataset.n;save();paintLevels();});
+}
+function paintOpts(){
+  const set=(id,val)=>document.querySelectorAll("#"+id+" .opt").forEach(b=>b.classList.toggle("sel",b.dataset.v===String(val)));
+  set("optInput",S.input);set("optTempo",S.tempoAdj);set("optCount",S.count);set("optSyl",S.syl);
+}
+["optInput","optTempo","optCount","optSyl"].forEach(id=>{
+  document.querySelectorAll("#"+id+" .opt").forEach(b=>b.onclick=()=>{
+    const v=b.dataset.v;
+    if(id==="optInput")S.input=v;
+    if(id==="optTempo")S.tempoAdj=+v;
+    if(id==="optCount")S.count=+v;
+    if(id==="optSyl")S.syl=+v;
+    save();paintOpts();
+  });
+});
+$("inName").value=S.name;
+$("inName").addEventListener("input",e=>{S.name=e.target.value.trim();save();});
+$("btnStart").onclick=()=>{ac();beginRound();};
+function show(id){document.querySelectorAll(".scr").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");}
+function toast(html){
+  const t=document.createElement("div");t.className="toast";t.innerHTML=html;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),5200);
+}
+paintLevels();paintOpts();
+
+/* debug hooks (used to test in a browser pane where the real mic is blocked) */
+window.__rq={S,state,mic,LEVELS,CELLS,genPattern,drawPattern,countFor,IS_IPAD,
+  clap:(dt=0)=>clapAt(ac().currentTime+dt,"sim"),
+  get actx(){return AC},
+  set autoClap(v){state.autoClap=v},get autoClap(){return state.autoClap}};
+</script>
