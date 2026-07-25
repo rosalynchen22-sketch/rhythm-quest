@@ -13,8 +13,15 @@
   --bg:#151735; --bg2:#1d2048; --ink:#26203a;
   --paper:#fff7e6; --paper2:#ffedc9;
   --coral:#ff6b57; --amber:#ffb32e; --mint:#3fd6a4; --sky:#5ac8f5; --plum:#8f7bff;
+  --pink:#ff8fb3; --rust:#f0932b;
   --soft:#bfc3ff;
   --disp:ui-rounded,"Hiragino Maru Gothic ProN","Chalkboard SE","Comic Sans MS","Segoe UI",sans-serif;
+  /* critter colors per level, bright + deep shadow twin */
+  --lv1:#ffb32e; --lv1-d:#c9860e; /* 🐣 chick */
+  --lv2:#ff8fb3; --lv2-d:#d85f8c; /* 🐰 bunny */
+  --lv3:#ff6b57; --lv3-d:#d8402c; /* 🦊 fox */
+  --lv4:#f0932b; --lv4-d:#b96a10; /* 🐯 tiger */
+  --lv5:#8f7bff; --lv5-d:#5f49d6; /* 🐉 dragon */
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -59,13 +66,38 @@ body{
 /* ---------- home ---------- */
 .nameIn{font-family:var(--disp);font-size:19px;font-weight:700;color:var(--ink);
   border:3px solid var(--ink);border-radius:14px;padding:10px 14px;background:#fff;width:100%;max-width:320px;text-align:center}
-.lvls{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-.lvl{border:3px solid var(--ink);border-radius:16px;background:#fff;padding:10px 8px;text-align:center;
-  cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .06s}
-.lvl:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
-.lvl .em{font-size:30px}.lvl b{display:block;font-size:15px;margin:2px 0}
-.lvl small{color:#7c6f57;font-size:11px;line-height:1.2;display:block}
-.lvl.sel{background:var(--amber);outline:3px solid var(--coral)}
+.lvls{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:14px 12px;padding-top:8px}
+.lvl{
+  position:relative;border:3px solid var(--ink);border-radius:18px;
+  padding:24px 8px 12px;text-align:center;cursor:pointer;color:#fff;
+  box-shadow:0 5px 0 var(--ink);transition:transform .1s,box-shadow .1s;
+  transform:rotate(var(--tilt,0deg));overflow:visible;
+}
+.lvl:nth-child(1){--tilt:-2deg} .lvl:nth-child(2){--tilt:1.5deg} .lvl:nth-child(3){--tilt:-1.3deg}
+.lvl:nth-child(4){--tilt:1.8deg} .lvl:nth-child(5){--tilt:-1.5deg}
+.lvl:active{transform:rotate(var(--tilt,0deg)) translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.lvl::after{ /* paw print watermark */
+  content:"🐾";position:absolute;bottom:2px;right:6px;font-size:15px;opacity:.35;
+  transform:rotate(12deg);filter:grayscale(1) brightness(2);
+}
+.lvl .em{
+  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  width:46px;height:46px;border-radius:50%;background:#fff;border:3px solid var(--ink);
+  display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;
+  box-shadow:0 3px 0 rgba(0,0,0,.35);
+}
+.lvl b{display:block;font-size:15px;margin:4px 0 2px;text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.lvl small{color:rgba(255,255,255,.9);font-size:11px;line-height:1.25;display:block}
+.lvl[data-n="1"]{background:linear-gradient(160deg,var(--lv1),var(--lv1-d));box-shadow:0 5px 0 var(--lv1-d)}
+.lvl[data-n="2"]{background:linear-gradient(160deg,var(--lv2),var(--lv2-d));box-shadow:0 5px 0 var(--lv2-d)}
+.lvl[data-n="3"]{background:linear-gradient(160deg,var(--lv3),var(--lv3-d));box-shadow:0 5px 0 var(--lv3-d)}
+.lvl[data-n="4"]{background:linear-gradient(160deg,var(--lv4),var(--lv4-d));box-shadow:0 5px 0 var(--lv4-d)}
+.lvl[data-n="5"]{background:linear-gradient(160deg,var(--lv5),var(--lv5-d));box-shadow:0 5px 0 var(--lv5-d)}
+.lvl[data-n="1"]:active{box-shadow:0 1px 0 var(--lv1-d)} .lvl[data-n="2"]:active{box-shadow:0 1px 0 var(--lv2-d)}
+.lvl[data-n="3"]:active{box-shadow:0 1px 0 var(--lv3-d)} .lvl[data-n="4"]:active{box-shadow:0 1px 0 var(--lv4-d)}
+.lvl[data-n="5"]:active{box-shadow:0 1px 0 var(--lv5-d)}
+.lvl.sel{outline:3px solid #fff;outline-offset:2px;transform:rotate(0deg) scale(1.05)}
+.lvl.sel:active{transform:rotate(0deg) scale(1.05) translateY(3px)}
 .optRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0}
 .opt{border:2.5px solid var(--ink);border-radius:999px;background:#fff;padding:7px 14px;font-weight:700;
   font-family:var(--disp);font-size:14px;cursor:pointer;color:var(--ink)}
@@ -135,7 +167,18 @@ select{font-family:var(--disp);font-size:15px;font-weight:700;border:2.5px solid
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
   border:2px solid #fff3;border-radius:14px;padding:12px 18px;font-weight:700;font-size:15px;z-index:99;
   max-width:88vw;text-align:center;animation:rise .3s ease both}
+
+/* ---------- decorative paw prints ---------- */
+.paw{position:fixed;font-size:26px;opacity:.14;pointer-events:none;z-index:0;
+  animation:pawfloat 8s ease-in-out infinite;}
+@keyframes pawfloat{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-16px) rotate(calc(var(--r,0deg) + 10deg))}}
+.wrap{position:relative;z-index:1}
 </style>
+
+<div class="paw" style="top:8%;left:5%;--r:-15deg">🐾</div>
+<div class="paw" style="top:18%;right:8%;--r:20deg;animation-delay:-2s;font-size:20px">🐾</div>
+<div class="paw" style="bottom:20%;left:9%;--r:10deg;animation-delay:-4s;font-size:22px">🐾</div>
+<div class="paw" style="bottom:10%;right:6%;--r:-25deg;animation-delay:-6s">🐾</div>
 
 <div class="wrap">
 
