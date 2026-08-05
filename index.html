@@ -650,7 +650,8 @@ async function nextQuestion(sameAgain){
 function playQuestion(){
   const A=ac(),bt=60/state.bpm;
   const t0=A.currentTime+.5;
-  const patStart=t0+4*bt, turnStart=patStart+4*bt, turnEnd=turnStart+4*bt+.75*bt;
+  const PREP=2; // breathing room (seconds) between the demo ending and the child's turn
+  const patStart=t0+4*bt, demoEnd=patStart+4*bt, turnStart=demoEnd+PREP, turnEnd=turnStart+4*bt+.75*bt;
   state.turnStart=turnStart;state.turnEnd=turnEnd;
   // audio: count-in ticks + pattern woodblocks.  NOTHING sounds during the child's turn
   for(let i=0;i<4;i++)tick(t0+i*bt,i===0);
@@ -660,18 +661,17 @@ function playQuestion(){
   for(let i=0;i<4;i++)VE.push({t:t0+i*bt,fn:()=>{light(i);countNum(i+1);}});
   state.pat.onsets.forEach((o,i)=>VE.push({t:patStart+o*bt,fn:()=>litNote(i)}));
   for(let i=0;i<4;i++)VE.push({t:patStart+i*bt,fn:()=>light(i)});
-  if(S.input==="mic"&&IS_IPAD){
-    // Reopen the mic strictly AFTER the pattern's last note has finished sounding
-    // (not just "one beat early" — dense/late-onset patterns can still have a
-    // note ringing inside that last beat). iPadOS applies OS-level echo
-    // suppression the instant audio plays while the mic is open, and never
-    // restores the gain on its own; opening late sidesteps the trigger while
-    // still preferring a full beat of setup lead when the pattern allows it.
-    const lastAudioEnd=patStart+Math.max(...state.pat.onsets)*bt+.15;
-    const reopenAt=Math.max(lastAudioEnd,turnStart-bt);
-    VE.push({t:reopenAt,fn:()=>{if(state.playing)startMic();}});
-  }
-  VE.push({t:turnStart-.02,fn:()=>{unlitAll();state.capturing=true;setStatus("👏 Your turn!","turn");}});
+  const lastAudioEnd=patStart+Math.max(...state.pat.onsets)*bt+.15;
+  // The PREP pause exists so the child never feels rushed into clapping — but
+  // that same pause is spent settling the mic, not just waiting, so there's no
+  // detection lag once the turn actually starts. Reopen (iPad) or simply let the
+  // already-open stream (PC) keep adapting from the instant demo audio stops —
+  // strictly after the last note (iPadOS applies OS-level echo suppression the
+  // moment audio plays while the mic is open) — giving the full PREP seconds of
+  // settle time instead of the old single beat of lead.
+  VE.push({t:lastAudioEnd,fn:()=>{unlitAll();setStatus("🎤 Get ready…","");
+    if(S.input==="mic"&&IS_IPAD&&state.playing)startMic();}});
+  VE.push({t:turnStart-.02,fn:()=>{state.capturing=true;setStatus("👏 Your turn!","turn");}});
   for(let i=0;i<4;i++)VE.push({t:turnStart+i*bt,fn:()=>light(i,true)});
   VE.push({t:turnEnd,fn:finishTurn});
   VE.sort((a,b)=>a.t-b.t);
