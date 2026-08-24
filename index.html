@@ -109,15 +109,25 @@ body{
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:720px;margin:0 auto 10px;flex-wrap:wrap}
 .chip{background:var(--bg2);border:2px solid #3a3e77;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700}
 .chip b{color:var(--amber)}
-.status{max-width:720px;margin:0 auto 10px;text-align:center;font-size:clamp(20px,4.5vw,28px);font-weight:800;min-height:38px}
+.status{max-width:720px;margin:0 auto 4px;text-align:center;font-size:clamp(20px,4.5vw,28px);font-weight:800;min-height:38px}
 .status.turn{color:var(--mint);animation:pulse .5s ease}
+.status.ready{color:var(--amber)}
 @keyframes pulse{0%{transform:scale(.85)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.subcue{max-width:720px;margin:0 auto 8px;text-align:center;font-size:14.5px;font-weight:700;
+  color:var(--soft);min-height:19px;line-height:1.35}
 .staffCard{position:relative;background:var(--paper);border:3px solid var(--ink);border-radius:22px;
   box-shadow:0 7px 0 #00000055;max-width:720px;margin:0 auto;padding:6px 4px 2px}
+/* green ring pulse on the exact beat the child starts clapping */
+.staffCard.golive{animation:goflash .5s ease}
+@keyframes goflash{
+  0%{box-shadow:0 7px 0 #00000055,0 0 0 0 #3fd6a4cc}
+  70%{box-shadow:0 7px 0 #00000055,0 0 0 16px #3fd6a400}
+  100%{box-shadow:0 7px 0 #00000055,0 0 0 0 #3fd6a400}}
 .staffCard svg{display:block;width:100%;height:auto}
 .countNum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:110px;font-weight:800;color:var(--coral);pointer-events:none;opacity:0}
 .countNum.pop{animation:cpop .5s ease both}
+.countNum.go{color:var(--mint)}   /* turn count-in reads green = "you're next" */
 @keyframes cpop{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
 .lights{display:flex;gap:18px;justify-content:center;margin:16px 0 6px}
 .bl{width:44px;height:44px;border-radius:50%;background:var(--bg2);border:3px solid #3a3e77;transition:background .08s}
@@ -236,6 +246,7 @@ select{font-family:var(--disp);font-size:15px;font-weight:700;border:2.5px solid
     <span class="chip">🔥 <b id="chStreak">0</b></span>
   </div>
   <div class="status" id="status">Get ready…</div>
+  <div class="subcue" id="subCue"></div>
   <div class="staffCard">
     <svg id="staff" viewBox="0 0 760 216" xmlns="http://www.w3.org/2000/svg"></svg>
     <div class="countNum" id="countNum"></div>
@@ -361,7 +372,12 @@ function blip(t,f,d,vol,type){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.001,t+d);
   o.connect(g);g.connect(mg());o.start(t);o.stop(t+d+.02);markSound(t,d);
 }
-function tick(t,accent){blip(t,accent?1320:880,.06,accent?.4:.28,"triangle");}
+function tick(t,accent,vs){blip(t,accent?1320:880,.06,(accent?.4:.28)*(vs||1),"triangle");}
+// The turn count-in RISES in pitch so the ear can tell it apart from the flat
+// "listen" count-in: the climb itself says "you're next", and the loudest,
+// highest tick lands on beat 4 — one beat before the child claps.
+const CUEHZ=[700,820,960,1180];
+function cueTick(t,i){blip(t,CUEHZ[i]||880,.075,i===3?.46:.32,"triangle");}
 function wood(t){ // friendly woodblock for the rhythm pattern
   const A=ac(),o=A.createOscillator(),g=A.createGain();
   o.type="sine";o.frequency.setValueAtTime(820,t);o.frequency.exponentialRampToValueAtTime(390,t+.07);
@@ -500,11 +516,11 @@ function micLoop(){
 
 /* ============ game state ============ */
 const state={playing:false,qIndex:0,total:6,score:0,streak:0,best:0,
-  pat:null,bpm:80,turnStart:0,turnEnd:0,claps:[],capturing:false,
+  pat:null,bpm:80,turnStart:0,turnEnd:0,capFrom:0,claps:[],capturing:false,
   VE:[],results:[],retried:false,autoClap:false};
 
 function clapAt(t,srcKind){
-  if(state.capturing&&t>state.turnStart-.35&&t<state.turnEnd){
+  if(state.capturing&&t>=(state.capFrom||state.turnStart-.35)-.02&&t<state.turnEnd){
     state.claps.push(t);
     addClapTick(t);
     fx("👏");
@@ -636,7 +652,7 @@ async function nextQuestion(sameAgain){
   $("chScore").textContent=state.score;$("chStreak").textContent=state.streak;
   if(!sameAgain){state.pat=genPattern(lvl());state.retried=false;}
   drawPattern(state.pat,S.syl===1);
-  setStatus("👂 Listen…","");
+  setStatus("👂 Listen…","");setCue("Listen first — don't clap yet");
   $("meterWrap").classList.toggle("show",S.input==="mic");
   if(S.input==="mic"&&!IS_IPAD&&!mic.active){
     // PC: acquire once and keep the stream warm for the whole round (mid-round
@@ -650,28 +666,46 @@ async function nextQuestion(sameAgain){
 function playQuestion(){
   const A=ac(),bt=60/state.bpm;
   const t0=A.currentTime+.5;
-  const PREP=2; // breathing room (seconds) between the demo ending and the child's turn
-  const patStart=t0+4*bt, demoEnd=patStart+4*bt, turnStart=demoEnd+PREP, turnEnd=turnStart+4*bt+.75*bt;
+  const patStart=t0+4*bt, demoEnd=patStart+4*bt;
+  // cueStart stays on the SAME beat grid as the intro and demo (t0+8*bt) instead
+  // of an arbitrary fixed pause, so the metronome never stops: kids can feel
+  // beat 1 of their turn coming rather than guess when a silent gap ends.
+  const cueStart=demoEnd, turnStart=cueStart+4*bt, turnEnd=turnStart+4*bt+.75*bt;
   state.turnStart=turnStart;state.turnEnd=turnEnd;
   // audio: count-in ticks + pattern woodblocks.  NOTHING sounds during the child's turn
   for(let i=0;i<4;i++)tick(t0+i*bt,i===0);
   state.pat.onsets.forEach(o=>wood(patStart+o*bt));
+  // a second count-in carries the beat straight from the demo into the child's
+  // turn — "1, 2, 3, 4, (clap)" — with a rising pitch that marks it as the cue
+  for(let i=0;i<4;i++)cueTick(cueStart+i*bt,i);
+  // Tap mode keeps a quiet metronome running UNDER the child's turn, which makes
+  // the beat unmistakable. Mic mode has to stay silent: every app sound blanks
+  // clap detection for ~0.2s (appSoundUntil), which would swallow the claps.
+  if(S.input==="tap")for(let i=0;i<4;i++)tick(turnStart+i*bt,i===0,.55);  // quiet: sits under the taps
   // visuals
   const VE=state.VE;
   for(let i=0;i<4;i++)VE.push({t:t0+i*bt,fn:()=>{light(i);countNum(i+1);}});
   state.pat.onsets.forEach((o,i)=>VE.push({t:patStart+o*bt,fn:()=>litNote(i)}));
   for(let i=0;i<4;i++)VE.push({t:patStart+i*bt,fn:()=>light(i)});
   const lastAudioEnd=patStart+Math.max(...state.pat.onsets)*bt+.15;
-  // The PREP pause exists so the child never feels rushed into clapping — but
-  // that same pause is spent settling the mic, not just waiting, so there's no
-  // detection lag once the turn actually starts. Reopen (iPad) or simply let the
+  // Letting the mic settle no longer depends on a fixed pause: it now spans the
+  // whole count-in below (at least a full beat, usually more), so there's still
+  // no detection lag once the turn starts. Reopen (iPad) or simply let the
   // already-open stream (PC) keep adapting from the instant demo audio stops —
   // strictly after the last note (iPadOS applies OS-level echo suppression the
-  // moment audio plays while the mic is open) — giving the full PREP seconds of
-  // settle time instead of the old single beat of lead.
-  VE.push({t:lastAudioEnd,fn:()=>{unlitAll();setStatus("🎤 Get ready…","");
+  // moment audio plays while the mic is open).
+  VE.push({t:lastAudioEnd,fn:()=>{unlitAll();setStatus("Get ready…","ready");
+    setCue("Count with me — clap on the next 1 👏");
     if(S.input==="mic"&&IS_IPAD&&state.playing)startMic();}});
-  VE.push({t:turnStart-.02,fn:()=>{state.capturing=true;setStatus("👏 Your turn!","turn");}});
+  for(let i=0;i<4;i++)VE.push({t:cueStart+i*bt,fn:()=>{light(i);countNum(i+1,true);}});
+  // Start capturing BEFORE the downbeat so a child who comes in a hair early is
+  // recorded rather than thrown away (scoring can forgive a shift; it can't
+  // score a clap it never saw). Clear of the last cue tick's mic-blanking.
+  const capLead=Math.min(.45,.5*bt);
+  state.capFrom=turnStart-capLead;
+  VE.push({t:state.capFrom,fn:()=>{state.capturing=true;}});
+  VE.push({t:turnStart-.02,fn:()=>{setStatus("👏 Your turn!","turn");
+    setCue("Clap the rhythm back");goFlash();}});
   for(let i=0;i<4;i++)VE.push({t:turnStart+i*bt,fn:()=>light(i,true)});
   VE.push({t:turnEnd,fn:finishTurn});
   VE.sort((a,b)=>a.t-b.t);
@@ -683,8 +717,12 @@ function unlitAll(){document.querySelectorAll("g.ev.lit").forEach(e=>e.classList
 function light(i,go){
   for(let k=0;k<4;k++){const b=$("bl"+k);b.classList.toggle("on",k===i);b.classList.toggle("go",!!go);}
 }
-function countNum(n){const c=$("countNum");c.textContent=n;c.classList.remove("pop");void c.offsetWidth;c.classList.add("pop");}
+function countNum(n,go){const c=$("countNum");c.textContent=n;c.classList.toggle("go",!!go);
+  c.classList.remove("pop");void c.offsetWidth;c.classList.add("pop");}
 function setStatus(t,cls){const s=$("status");s.textContent=t;s.className="status "+(cls||"");}
+function setCue(t){$("subCue").textContent=t||"";}
+function goFlash(){const c=document.querySelector(".staffCard");if(!c)return;
+  c.classList.remove("golive");void c.offsetWidth;c.classList.add("golive");}
 
 function finishTurn(){
   state.capturing=false;
@@ -692,41 +730,68 @@ function finishTurn(){
   if(S.input==="mic"&&IS_IPAD)stopMic();   // PC keeps the stream warm between patterns
   const bt=60/state.bpm;
   const exp=state.pat.onsets.map(o=>state.turnStart+o*bt);
-  // mic latency self-calibration: audio output + mic input delay shifts every
-  // clap by the same amount (can be 200-400ms on PC). If the claps share a
-  // consistent shift, compensate before scoring and remember it for next time.
-  let off=(S.input==="mic"?S.clapOffset:0)/1000;
-  if(S.input==="mic"&&state.claps.length>=2){
-    // grid-search the shift that aligns the whole pattern best (a simple
-    // nearest-note median aliases to the wrong note once latency exceeds
-    // half the smallest note gap)
-    let best=off,bestQ=-1;
-    for(let cand=-.12;cand<=.451;cand+=.01){
+  // Whole-echo alignment. Two different things shift every clap by the same
+  // amount: device latency (mic only — output + input delay, 200-400ms on PC)
+  // and the child simply entering a little late or early. Both leave the RHYTHM
+  // intact, so both are searched out and removed before the notes are graded:
+  // clapping the right pattern a beat-fraction late used to mark every note
+  // wrong, which is the one thing that must never happen.
+  // Tap mode gets this too — it has no device latency, but a late entry there
+  // was scored strictly against the downbeat and failed for the same reason.
+  const lat=(S.input==="mic"?S.clapOffset:0)/1000;   // device-latency prior
+  let minGap=bt;
+  for(let i=1;i<exp.length;i++)minGap=Math.min(minGap,exp[i]-exp[i-1]);
+  // Both distances below are set by the SMALLEST NOTE GAP, and keeping them
+  // apart is what makes this safe:
+  //   scan  = how far we LOOK for the shift. Under one whole gap, or the search
+  //           finds the echo's alias sitting on the neighbouring note.
+  //   slack = how much we FORGIVE. Half a gap at most, for the same reason:
+  //           slide further and a wrong rhythm can be shifted until it "fits".
+  // So dense sixteenth patterns get tight forgiveness (there, precision IS the
+  // skill) and quarters get a lot, which is where entry drift actually bites.
+  // Measure over `scan`, THEN clamp into `slack`. Clamping the measured value
+  // (rather than only searching inside `slack`) is the part that matters: when
+  // a child is later than we forgive, the honest answer is "late, at the edge
+  // of the window" — searching the narrow window alone instead finds the
+  // next-beat alias just inside it and calls a late echo an early one.
+  const slack=Math.min(minGap*.45,Math.max(.3,bt*.7));
+  const scan=Math.min(minGap*.75,bt);
+  const lo=lat-slack,hi=lat+slack;
+  let off=lat;
+  if(state.claps.length>=2){
+    let best=lat,bestQ=-1;
+    for(let cand=lat-scan;cand<=lat+scan+1e-9;cand+=.01){
       let q=0;
       exp.forEach(e=>{
         let d=1e9;
         state.claps.forEach(c=>{const x=Math.abs(c-cand-e);if(x<d)d=x;});
         q+=Math.max(0,1-d/(bt*.4));
       });
-      if(q>bestQ+1e-9||(Math.abs(q-bestQ)<=1e-9&&Math.abs(cand-off)<Math.abs(best-off))){bestQ=q;best=cand;}
+      if(q>bestQ+1e-9||(Math.abs(q-bestQ)<=1e-9&&Math.abs(cand-lat)<Math.abs(best-lat))){bestQ=q;best=cand;}
     }
-    // refine with the median residual at the winning shift
-    const res=[];
+    // refine with the median residual at the winning shift (gate the residual
+    // by the note gap too — on sixteenths bt*.3 would reach the next note)
+    const res=[],gate=Math.min(bt*.3,minGap*.45);
     exp.forEach(e=>{
       let bd=1e9;
       state.claps.forEach(c=>{const d=c-best-e;if(Math.abs(d)<Math.abs(bd))bd=d;});
-      if(Math.abs(bd)<=bt*.3)res.push(bd);
+      if(Math.abs(bd)<=gate)res.push(bd);
     });
-    if(res.length>=2){
-      res.sort((a,b)=>a-b);
-      const m=best+res[Math.floor(res.length/2)];
-      if(m>=-.12&&m<=.45){
-        off=m;
-        S.clapOffset=Math.max(0,Math.min(450,Math.round(S.clapOffset*.5+m*1000*.5)));
-        save();
-      }
-    }
+    let m=best;
+    if(res.length>=2){res.sort((a,b)=>a-b);m=best+res[Math.floor(res.length/2)];}
+    off=Math.max(lo,Math.min(hi,m));
+    // Persist ONLY in mic mode, and only when the measured shift sits CLOSE to
+    // the stored one. Device latency is a property of the hardware: it barely
+    // moves between patterns. A big excursion is the child's own entry timing,
+    // and folding that in would let a chronically-early student train the
+    // offset until the game stopped noticing — and hand the next student on
+    // that iPad a latency their hardware doesn't have. Small residual → refine
+    // the device estimate; large one → leave it, and teach it via the hint
+    // below. (🎤 Mic check's "clap with the beat" tuner still sets it outright.)
+    if(S.input==="mic"&&Math.abs(off-lat)<=.12)
+      {S.clapOffset=Math.max(0,Math.min(450,Math.round(S.clapOffset*.75+off*1000*.25)));save();}
   }
+  const drift=off-lat;   // whole-echo displacement: + late, - early
   const claps=state.claps.map(c=>c-off).sort((a,b)=>a-b);
   // per-note timing windows: each note's tolerance depends on the gap to ITS
   // neighbours, so a pair of fast notes doesn't make lone quarter notes strict
@@ -763,6 +828,12 @@ function finishTurn(){
     [name+"PERFECT echo! ⭐⭐⭐","WOW! Super claps! ⭐⭐⭐"],
   ][stars];
   setStatus(rnd(msgs),stars>=2?"turn":"");
+  // The rhythm was graded after the drift was removed, so a shifted-but-correct
+  // echo keeps its stars — say so here instead, so entry timing is still taught.
+  setCue(stars>=2&&Math.abs(drift)>bt*.22
+    ?(drift>0?"Rhythm was right — come in a little sooner, on beat 1 ⏱️"
+             :"Rhythm was right — wait for beat 1 before you start ⏱️")
+    :"");
   chime(stars);
   if(state.results[state.qIndex]===undefined||stars>state.results[state.qIndex])
     state.results[state.qIndex]=stars;
